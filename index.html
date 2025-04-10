@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>图像识别系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .upload-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .preview-container {
+            text-align: center;
+            margin: 20px auto;
+            width: 100%;
+            height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #imagePreview {
+            width: 600px;
+            height: 400px;
+            object-fit: contain;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+        .result-container {
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 4px;
+        }
+        .confidence-bar {
+            width: 200px;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-left: 20px;
+        }
+        .confidence-progress {
+            height: 100%;
+            background-color: #28a745;
+            transition: width 0.3s ease;
+        }
+        .result-class {
+            font-weight: bold;
+            min-width: 100px;
+            text-align: left;
+        }
+        .confidence-value {
+            min-width: 80px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center;">图像识别系统</h1>
+        <div class="upload-container">
+            <input type="file" id="imageInput" accept="image/*" style="display: none;">
+            <button onclick="document.getElementById('imageInput').click()">选择图片</button>
+            <button onclick="startRecognition()">开始识别</button>
+        </div>
+        <div class="preview-container">
+            <img id="imagePreview" style="display: none;">
+        </div>
+        <div id="result" class="result-container" style="display: none;"></div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('imagePreview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function startRecognition() {
+            if (!selectedFile) {
+                alert('请先选择一张图片');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('result');
+                resultDiv.style.display = 'block';
+                
+                if (data.success) {
+                    resultDiv.className = 'result-container success';
+                    let html = '<h2>识别结果：</h2>';
+                    data.results.forEach(result => {
+                        const confidence = (result.confidence * 100).toFixed(2);
+                        html += `
+                            <div class="result-item">
+                                <span class="result-class">${result.class}</span>
+                                <div class="confidence-bar">
+                                    <div class="confidence-progress" style="width: ${confidence}%"></div>
+                                </div>
+                                <span class="confidence-value">${confidence}%</span>
+                            </div>
+                        `;
+                    });
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.className = 'result-container error';
+                    resultDiv.innerHTML = `错误：${data.error}`;
+                }
+            })
+            .catch(error => {
+                const resultDiv = document.getElementById('result');
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'result-container error';
+                resultDiv.innerHTML = `错误：${error.message}`;
+            });
+        }
+    </script>
+</body>
+</html> 
