@@ -5,7 +5,7 @@
 ## 项目结构
 
 ```
-EnhancedResNet/         #自用模型
+EnhancedResNet/         # 自用模型
 ├── model.py          # 模型定义
 ├── train.py          # 训练脚本
 ├── config.py         # 配置文件
